@@ -92,8 +92,8 @@ func (c Config) Validate() error {
 		}
 	}
 
-	if !c.CookieSecure && !isLocalURL(c.AppBaseURL) {
-		return fmt.Errorf("COOKIE_SECURE must be true outside localhost")
+	if !c.CookieSecure {
+		return fmt.Errorf("COOKIE_SECURE must be true")
 	}
 
 	return nil
@@ -101,10 +101,6 @@ func (c Config) Validate() error {
 
 func (c Config) FrontendDashboardURL() string {
 	return strings.TrimRight(c.FrontendURL, "/") + "/dashboard"
-}
-
-func (c Config) AllowsInsecureHTTP() bool {
-	return isLocalURL(c.AppBaseURL)
 }
 
 func getenv(name, fallback string) string {
@@ -149,25 +145,5 @@ func validateSecureURL(raw string) error {
 	if parsed.Scheme == "https" {
 		return nil
 	}
-	if parsed.Scheme == "http" && isLocalhost(parsed.Hostname()) {
-		return nil
-	}
 	return fmt.Errorf("URL %q must use https", raw)
-}
-
-func isLocalURL(raw string) bool {
-	parsed, err := url.Parse(raw)
-	if err != nil {
-		return false
-	}
-	return isLocalhost(parsed.Hostname())
-}
-
-func isLocalhost(host string) bool {
-	switch strings.ToLower(host) {
-	case "localhost", "127.0.0.1", "::1":
-		return true
-	default:
-		return false
-	}
 }

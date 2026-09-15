@@ -265,10 +265,6 @@ func (s *Server) cors(next http.Handler) http.Handler {
 }
 
 func (s *Server) requireHTTPS(next http.Handler) http.Handler {
-	if s.cfg.AllowsInsecureHTTP() {
-		return next
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
 			next.ServeHTTP(w, r)
@@ -288,7 +284,7 @@ func (s *Server) setSignedCookie(w http.ResponseWriter, name, value string, maxA
 		Path:     "/",
 		Domain:   s.cfg.CookieDomain,
 		HttpOnly: httpOnly,
-		Secure:   s.cfg.CookieSecure,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	}
 
@@ -339,7 +335,7 @@ func (s *Server) clearCookie(w http.ResponseWriter, name string, httpOnly bool) 
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
 		HttpOnly: httpOnly,
-		Secure:   s.cfg.CookieSecure,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
