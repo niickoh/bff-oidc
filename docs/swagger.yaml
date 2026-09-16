@@ -1,0 +1,138 @@
+basePath: /
+definitions:
+  session.Session:
+    properties:
+      expires_at:
+        type: string
+      profile:
+        additionalProperties: {}
+        type: object
+      sub:
+        type: string
+    type: object
+host: localhost:5002
+info:
+  contact: {}
+  description: API para autenticación OIDC mediante BFF.
+  title: BFF OIDC API
+  version: "1.0"
+paths:
+  /auth/callback:
+    get:
+      parameters:
+      - description: Codigo de autorizacion OIDC
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: Estado del flujo OIDC
+        in: query
+        name: state
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "302":
+          description: Found
+        "400":
+          description: invalid request or login state
+          schema:
+            type: string
+        "502":
+          description: oidc callback failed
+          schema:
+            type: string
+      summary: Completa el flujo de autenticacion OIDC
+      tags:
+      - auth
+  /auth/login:
+    get:
+      produces:
+      - text/plain
+      responses:
+        "302":
+          description: Found
+        "429":
+          description: rate limit exceeded
+          schema:
+            type: string
+      summary: Inicia el flujo de autenticacion OIDC
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+      security:
+      - SessionCookie: []
+      summary: Cierra la sesion actual
+      tags:
+      - auth
+  /auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/session.Session'
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+      security:
+      - SessionCookie: []
+      summary: Obtiene la sesion actual
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/session.Session'
+        "400":
+          description: session cannot be refreshed
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "502":
+          description: refresh failed
+          schema:
+            type: string
+      security:
+      - SessionCookie: []
+      summary: Renueva la sesion usando el refresh token
+      tags:
+      - auth
+  /healthz:
+    get:
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+      summary: Verifica el estado de la API
+      tags:
+      - health
+securityDefinitions:
+  SessionCookie:
+    in: cookie
+    name: bff_session
+    type: apiKey
+swagger: "2.0"

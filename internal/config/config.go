@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -32,20 +33,21 @@ type Config struct {
 }
 
 func LoadFromEnv() (Config, error) {
+	_ = godotenv.Load()
 	cfg := Config{
-		AppAddr:          getenv("APP_ADDR", ":8080"),
-		AppBaseURL:       os.Getenv("APP_BASE_URL"),
-		FrontendURL:      os.Getenv("FRONTEND_URL"),
-		OIDCIssuer:       os.Getenv("OIDC_ISSUER"),
-		OIDCAuthURL:      os.Getenv("OIDC_AUTH_URL"),
-		OIDCTokenURL:     os.Getenv("OIDC_TOKEN_URL"),
-		OIDCUserInfoURL:  os.Getenv("OIDC_USERINFO_URL"),
-		OIDCClientID:     os.Getenv("OIDC_CLIENT_ID"),
-		OIDCClientSecret: os.Getenv("OIDC_CLIENT_SECRET"),
-		OIDCRedirectURL:  os.Getenv("OIDC_REDIRECT_URL"),
+		AppAddr:          getenv("APP_ADDR", ":5002"),
+		AppBaseURL:       getenv("APP_BASE_URL", ""),
+		FrontendURL:      getenv("FRONTEND_URL", ""),
+		OIDCIssuer:       getenv("OIDC_ISSUER", ""),
+		OIDCAuthURL:      getenv("OIDC_AUTH_URL", ""),
+		OIDCTokenURL:     getenv("OIDC_TOKEN_URL", ""),
+		OIDCUserInfoURL:  getenv("OIDC_USERINFO_URL", ""),
+		OIDCClientID:     getenv("OIDC_CLIENT_ID", ""),
+		OIDCClientSecret: getenv("OIDC_CLIENT_SECRET", ""),
+		OIDCRedirectURL:  getenv("OIDC_REDIRECT_URL", ""),
 		OIDCScopes:       splitScopes(getenv("OIDC_SCOPES", "openid profile email offline_access")),
-		SessionSecret:    []byte(os.Getenv("SESSION_SECRET")),
-		CookieDomain:     os.Getenv("COOKIE_DOMAIN"),
+		SessionSecret:    []byte(getenv("SESSION_SECRET", "")),
+		CookieDomain:     getenv("COOKIE_DOMAIN", ""),
 	}
 
 	secure, err := parseBoolEnv("COOKIE_SECURE", true)

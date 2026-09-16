@@ -1,3 +1,11 @@
+// @title BFF OIDC API
+// @version 1.0
+// @description API para autenticación OIDC mediante BFF.
+// @host localhost:5002
+// @BasePath /
+// @securityDefinitions.apikey SessionCookie
+// @in cookie
+// @name bff_session
 package main
 
 import (
@@ -6,6 +14,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/joho/godotenv"
+	_ "github.com/niickoh/bff-oidc/docs"
 	"github.com/niickoh/bff-oidc/internal/app"
 	"github.com/niickoh/bff-oidc/internal/config"
 	"github.com/niickoh/bff-oidc/internal/oidcclient"
@@ -13,6 +23,10 @@ import (
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Printf("no .env file loaded: %v", err)
+	}
+
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
 		log.Fatalf("load config: %v", err)

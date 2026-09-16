@@ -19,6 +19,7 @@ import (
 	"github.com/niickoh/bff-oidc/internal/config"
 	"github.com/niickoh/bff-oidc/internal/oidcclient"
 	"github.com/niickoh/bff-oidc/internal/session"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 const (
@@ -66,14 +67,29 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /auth/me", s.withSession(s.handleMe))
 	mux.HandleFunc("POST /auth/refresh", s.withSession(s.handleRefresh))
 	mux.HandleFunc("POST /auth/logout", s.withSession(s.handleLogout))
-	return s.requireHTTPS(s.cors(mux))
+	mux.Handle("GET /swagger/", httpSwagger.WrapHandler)
+	// return s.requireHTTPS(s.cors(mux))
+	return s.cors(mux)
 }
 
+// handleHealthz godoc
+// @Summary Verifica el estado de la API
+// @Tags health
+// @Produce plain
+// @Success 200 {string} string "ok"
+// @Router /healthz [get]
 func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = w.Write([]byte("ok"))
 }
 
+// handleLogin godoc
+// @Summary Inicia el flujo de autenticacion OIDC
+// @Tags auth
+// @Produce plain
+// @Success 302
+// @Failure 429 {string} string "rate limit exceeded"
+// @Router /auth/login [get]
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 
@@ -114,6 +130,16 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.oidc.AuthorizationURL(state, nonce, pkceChallenge(verifier)), http.StatusFound)
 }
 
+// handleCallback godoc
+// @Summary Completa el flujo de autenticacion OIDC
+// @Tags auth
+// @Produce plain
+// @Param code query string true "Codigo de autorizacion OIDC"
+// @Param state query string true "Estado del flujo OIDC"
+// @Success 302
+// @Failure 400 {string} string "invalid request or login state"
+// @Failure 502 {string} string "oidc callback failed"
+// @Router /auth/callback [get]
 func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 
@@ -181,10 +207,28 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.cfg.FrontendDashboardURL(), http.StatusFound)
 }
 
+// handleMe godoc
+// @Summary Obtiene la sesion actual
+// @Tags auth
+// @Produce json
+// @Security SessionCookie
+// @Success 200 {object} session.Session
+// @Failure 401 {string} string "unauthorized"
+// @Router /auth/me [get]
 func (s *Server) handleMe(w http.ResponseWriter, _ *http.Request, current session.Session) {
 	writeJSON(w, http.StatusOK, current)
 }
 
+// handleRefresh godoc
+// @Summary Renueva la sesion usando el refresh token
+// @Tags auth
+// @Produce json
+// @Security SessionCookie
+// @Success 200 {object} session.Session
+// @Failure 400 {string} string "session cannot be refreshed"
+// @Failure 401 {string} string "unauthorized"
+// @Failure 502 {string} string "refresh failed"
+// @Router /auth/refresh [post]
 func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request, current session.Session) {
 	if current.RefreshToken == "" {
 		http.Error(w, "session cannot be refreshed", http.StatusBadRequest)
@@ -211,6 +255,13 @@ func (s *Server) handleRefresh(w http.ResponseWriter, r *http.Request, current s
 	writeJSON(w, http.StatusOK, current)
 }
 
+// handleLogout godoc
+// @Summary Cierra la sesion actual
+// @Tags auth
+// @Security SessionCookie
+// @Success 204
+// @Failure 401 {string} string "unauthorized"
+// @Router /auth/logout [post]
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request, _ session.Session) {
 	if sessionID, err := s.readSignedCookie(r, config.SessionCookieName); err == nil {
 		s.sessions.Delete(sessionID)
